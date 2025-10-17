@@ -1,0 +1,6 @@
+environment:
+  name: testenvone
+  identifier: testenvone
+  orgIdentifier: AbhiOrg
+  projectIdentifier: CSETest1
+  type: Production
