@@ -4,3 +4,20 @@ overrides:
       type: Number
       value: 1.0
       required: false
+  manifests:
+    - manifest:
+        identifier: test
+        type: Values
+        spec:
+          store:
+            spec:
+              connectorRef: account.AbhinandanGit
+              gitFetchType: Branch
+              branch: main
+              commitId: null
+              paths:
+                - .harness
+              folderPath: null
+              repoName: mainsdwd
+            type: Github
+          optionalValuesYaml: false
