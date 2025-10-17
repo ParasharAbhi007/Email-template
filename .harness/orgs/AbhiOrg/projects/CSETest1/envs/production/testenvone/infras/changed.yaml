@@ -1,0 +1,13 @@
+infrastructureDefinition:
+  name: changed
+  identifier: changed
+  orgIdentifier: AbhiOrg
+  projectIdentifier: CSETest1
+  environmentRef: testenvone
+  deploymentType: Kubernetes
+  type: KubernetesDirect
+  spec:
+    connectorRef: account.second
+    namespace: ns
+    releaseName: release-<+INFRA_KEY_SHORT_ID>
+  allowSimultaneousDeployments: false
