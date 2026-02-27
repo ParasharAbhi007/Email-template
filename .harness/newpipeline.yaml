@@ -1,0 +1,48 @@
+pipeline:
+  name: newpipeline
+  identifier: newpipeline
+  projectIdentifier: CSETest1
+  orgIdentifier: AbhiOrg
+  tags:
+    test: test
+  stages:
+    - stage:
+        name: one
+        identifier: one
+        description: ""
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: ShellScript_1
+                  identifier: ShellScript_1
+                  spec:
+                    shell: Bash
+                    executionTarget: {}
+                    source:
+                      type: Inline
+                      spec:
+                        script: ARTIFACTORY_USERNAME="<+secrets.getValue("hmac256")>"
+                    environmentVariables: []
+                    outputVariables:
+                      - name: ARTIFACTORY_USERNAME
+                        type: Secret
+                        value: ARTIFACTORY_USERNAME
+                  timeout: 10m
+                  when:
+                    stageStatus: Success
+              - step:
+                  name: template
+                  identifier: template
+                  template:
+                    templateRef: account.checktemplate
+                    versionLabel: "1"
+        tags: {}
+  variables:
+    - name: hh
+      type: String
+      description: ""
+      required: false
+      value: <+input>
