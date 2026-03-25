@@ -40,6 +40,24 @@ pipeline:
                     templateRef: account.checktemplate
                     versionLabel: "1"
         tags: {}
+    - stage:
+        name: tty
+        identifier: tty
+        tags: {}
+        template:
+          templateRef: account.newtestone
+          versionLabel: "1"
+          templateInputs:
+            type: Deployment
+            spec:
+              environment:
+                environmentRef: <+input>
+                environmentInputs: <+input>
+                serviceOverrideInputs: <+input>
+                infrastructureDefinitions: <+input>
+              service:
+                serviceRef: <+input>
+                serviceInputs: <+input>
   variables:
     - name: hh
       type: String
