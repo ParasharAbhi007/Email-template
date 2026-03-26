@@ -1,9 +1,10 @@
 overlayInputSet:
   name: overlay
+  tags: {}
   identifier: overlay
   orgIdentifier: AbhiOrg
   projectIdentifier: CSETest1
   pipelineIdentifier: newpipeline
   inputSetReferences:
     - gghh
-  tags: {}
+    - newtest
