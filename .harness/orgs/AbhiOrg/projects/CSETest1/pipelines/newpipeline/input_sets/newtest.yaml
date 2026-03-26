@@ -1,0 +1,26 @@
+inputSet:
+  name: newtest
+  identifier: newtest
+  orgIdentifier: AbhiOrg
+  projectIdentifier: CSETest1
+  pipeline:
+    identifier: newpipeline
+    stages:
+      - stage:
+          identifier: tty
+          template:
+            templateInputs:
+              type: Deployment
+              spec:
+                environment:
+                  environmentRef: <+input>
+                  environmentInputs: <+input>
+                  serviceOverrideInputs: <+input>
+                  infrastructureDefinitions: <+input>
+                service:
+                  serviceRef: <+input>
+                  serviceInputs: <+input>
+    variables:
+      - name: hh
+        type: String
+        value: jrngskfdn
