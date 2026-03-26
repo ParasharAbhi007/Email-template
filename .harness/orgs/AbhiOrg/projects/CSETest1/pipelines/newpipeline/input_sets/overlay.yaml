@@ -6,5 +6,5 @@ overlayInputSet:
   projectIdentifier: CSETest1
   pipelineIdentifier: newpipeline
   inputSetReferences:
-    - gghh
     - newtest
+    - gghh
