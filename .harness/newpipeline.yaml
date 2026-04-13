@@ -26,7 +26,7 @@ pipeline:
                       spec:
                         script: |-
                           echo "hello"
-                          echo <+step.name>
+                          echo <+pipeline.executionUrl>
                     environmentVariables: []
                     outputVariables:
                       - name: ARTIFACTORY_USERNAME
