@@ -24,7 +24,9 @@ pipeline:
                     source:
                       type: Inline
                       spec:
-                        script: echo "hello"
+                        script: |-
+                          echo "hello"
+                          echo <+step.name>
                     environmentVariables: []
                     outputVariables:
                       - name: ARTIFACTORY_USERNAME
