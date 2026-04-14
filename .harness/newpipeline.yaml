@@ -27,6 +27,7 @@ pipeline:
                         script: |-
                           echo "hello"
                           echo <+pipeline.executionUrl>
+                          echo <+secrets.getValue("account.SA_Token)>
                     environmentVariables: []
                     outputVariables:
                       - name: ARTIFACTORY_USERNAME
