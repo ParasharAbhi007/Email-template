@@ -15,29 +15,6 @@ pipeline:
           execution:
             steps:
               - step:
-                  type: ShellScript
-                  name: ShellScript_1
-                  identifier: ShellScript_1
-                  spec:
-                    shell: Bash
-                    executionTarget: {}
-                    source:
-                      type: Inline
-                      spec:
-                        script: |-
-                          echo "hello"
-                          echo <+pipeline.executionUrl>
-                          echo <+secrets.getValue("account.SA_Token")>
-                          echo 
-                    environmentVariables: []
-                    outputVariables:
-                      - name: ARTIFACTORY_USERNAME
-                        type: Secret
-                        value: ARTIFACTORY_USERNAME
-                  timeout: 10m
-                  when:
-                    stageStatus: Success
-              - step:
                   type: Http
                   name: Http_1
                   identifier: Http_1
