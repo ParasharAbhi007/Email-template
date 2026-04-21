@@ -24,6 +24,8 @@ pipeline:
                     headers:
                       - key: x-api-key
                         value: pat.akx2lmy5SnOFm549xPhFKQ.69dd86a5b4a96d2c2d484daa.aokL1th77dIkF67o7PqU
+                      - key: Harness-Account
+                        value: akx2lmy5SnOFm549xPhFKQ
                     inputVariables: []
                     outputVariables: []
                   timeout: 10s
