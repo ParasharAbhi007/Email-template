@@ -19,7 +19,7 @@ pipeline:
                   name: Http_1
                   identifier: Http_1
                   spec:
-                    url: https://app.harness.io/gateway/ng/api/projects?orgIdentifier=AbhiOrg
+                    url: https://app.harness.io/gateway/iacm/api/orgs/AbhiOrg/projects/CSETest1/workspaces
                     method: GET
                     headers:
                       - key: x-api-key
