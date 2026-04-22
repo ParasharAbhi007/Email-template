@@ -27,7 +27,7 @@ pipeline:
                         script: |-
                           echo <+secrets.getValue("servicenow")>
                           echo "hello"
-                          echo <+secrets.getValue('servicenow')>
+                          echo <+secrets.getValue('<+pipeline.variables.hh>')>
                     environmentVariables: []
                     outputVariables: []
                   timeout: 10m
@@ -37,4 +37,4 @@ pipeline:
       type: String
       description: ""
       required: false
-      value: <+input>
+      value: servicenow
