@@ -37,4 +37,4 @@ pipeline:
       type: String
       description: ""
       required: false
-      value: servicenow
+      value: Servicenow
