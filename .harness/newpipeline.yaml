@@ -15,19 +15,6 @@ pipeline:
           execution:
             steps:
               - step:
-                  type: Http
-                  name: Http_1
-                  identifier: Http_1
-                  spec:
-                    url: https://app3.harness.io/gateway/iacm/api/orgs/default/projects/aadeshcxerepro/workspaces
-                    method: GET
-                    headers:
-                      - key: x-api-key
-                        value: pat.eT62zWKBSJOEk9-KYG2LbQ.69e7b1ae48284f7df5f05f95.dqfOXgmv1edJpEaVds8o
-                    inputVariables: []
-                    outputVariables: []
-                  timeout: 10s
-              - step:
                   type: ShellScript
                   name: ShellScript_1
                   identifier: ShellScript_1
