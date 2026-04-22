@@ -27,7 +27,7 @@ pipeline:
                         script: |-
                           echo <+secrets.getValue("servicenow")>
                           echo "hello"
-                          echo <+secrets.getValue("service<+<+pipeline.variables.hh>.toLowerCase()>")>
+                          echo <+secrets.getValue('service<+<+pipeline.variables.hh>.toLowerCase()>')>
                     environmentVariables: []
                     outputVariables: []
                   timeout: 10m
