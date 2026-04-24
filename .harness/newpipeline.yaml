@@ -38,3 +38,13 @@ pipeline:
       description: ""
       required: false
       value: "no"
+  notificationRules:
+    - name: dff
+      identifier: dff
+      pipelineEvents:
+        - type: PipelineStart
+      notificationMethod:
+        type: Webhook
+        spec:
+          webhookUrl: <+variables.notification-hh>
+      enabled: true
