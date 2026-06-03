@@ -31,6 +31,11 @@ pipeline:
                     environmentVariables: []
                     outputVariables: []
                   timeout: 10m
+          environment:
+            environmentRef: <+input>
+            deployToAll: false
+            environmentInputs: <+input>
+            infrastructureDefinitions: <+input>
         tags: {}
   variables:
     - name: hh
