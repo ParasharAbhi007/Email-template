@@ -92,6 +92,8 @@ pipeline:
             description: ""
             required: false
             value: "true"
+        delegateSelectors:
+          - windows-amd64
   variables:
     - name: hh
       type: String
