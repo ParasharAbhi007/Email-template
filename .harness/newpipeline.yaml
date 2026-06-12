@@ -35,6 +35,11 @@ pipeline:
       description: ""
       required: false
       value: "no"
+    - name: iamRole
+      type: String
+      description: ""
+      required: false
+      value: one
   notificationRules:
     - name: dff
       identifier: dff
