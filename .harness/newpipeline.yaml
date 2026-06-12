@@ -24,7 +24,7 @@ pipeline:
                     source:
                       type: Inline
                       spec:
-                        script: "customIamRolePoliciesNames: <+expression.isResolved(<+serviceVariables.iamRole>)?\"[]\":(expression.isResolved(<+serviceVariables.customIamRolePolicyNames>)?<+serviceVariables.customIamRolePolicyNames>:\"[]\")>"
+                        script: "customIamRolePoliciesNames: <+expression.isResolved(<+pipeline.variables.iamRole>)?\"[]\":(expression.isResolved(<+pipeline.variables.customIamRolePolicyNames>)?<+pipeline.variables.customIamRolePolicyNames>:\"[]\")>"
                     environmentVariables: []
                     outputVariables: []
                   timeout: 10m
@@ -40,6 +40,11 @@ pipeline:
       description: ""
       required: false
       value: one
+    - name: customIamRolePolicyNames
+      type: String
+      description: ""
+      required: false
+      value: two
   notificationRules:
     - name: dff
       identifier: dff
