@@ -7,93 +7,28 @@ pipeline:
     test: test
   stages:
     - stage:
-        name: Sharepoint
-        identifier: Sharepoint
+        name: custome
+        identifier: custome
         description: ""
-        type: CI
+        type: Custom
         spec:
-          cloneCodebase: false
-          caching:
-            enabled: true
-            override: false
-          buildIntelligence:
-            enabled: true
-          platform:
-            os: Windows
-            arch: Amd64
-          runtime:
-            type: Cloud
-            spec: {}
           execution:
             steps:
               - step:
-                  type: Run
-                  name: Run_1
-                  identifier: Run_1
+                  type: ShellScript
+                  name: ShellScript_1
+                  identifier: ShellScript_1
                   spec:
-                    shell: Python
-                    command: |-
-                      import os
-                      from office365.sharepoint.client_context import ClientContext
-                      from office365.runtime.auth.client_credential import ClientCredential
-
-                      # --- Configuration Variables ---
-                      # The URL of your SharePoint site (not the specific folder)
-                      site_url = "https://yourdomain.sharepoint.com/sites/YourSiteName"
-
-                      # App Principal credentials (recommended for automated scripts)
-                      client_id = "YOUR_CLIENT_ID"
-                      client_secret = "YOUR_CLIENT_SECRET"
-
-                      # Local file details
-                      local_file_path = "path/to/your/generated_file.csv"
-                      file_name = os.path.basename(local_file_path)
-
-                      # SharePoint target folder (Relative path from the site)
-                      # Example: "Shared Documents/Reports"
-                      target_folder_url = "Shared Documents/YourTargetFolder"
-
-                      def upload_to_sharepoint():
-                          try:
-                              # 1. Authenticate and create the client context
-                              ctx = ClientContext(site_url).with_credentials(
-                                  ClientCredential(client_id, client_secret)
-                              )
-                              
-                              # Verify connection (optional but good for debugging)
-                              web = ctx.web
-                              ctx.load(web)
-                              ctx.execute_query()
-                              print(f"Connected to SharePoint site: {web.properties['Title']}")
-
-                              # 2. Get the target folder
-                              target_folder = ctx.web.get_folder_by_server_relative_url(target_folder_url)
-
-                              # 3. Read the local file and upload it
-                              with open(local_file_path, "rb") as content_file:
-                                  file_content = content_file.read()
-                                  
-                                  print(f"Uploading '{file_name}' to '{target_folder_url}'...")
-                                  # Upload the file
-                                  uploaded_file = target_folder.upload_file(file_name, file_content)
-                                  ctx.execute_query()
-                                  
-                              print("Upload successful!")
-                              print(f"File accessible at: {uploaded_file.serverRelativeUrl}")
-
-                          except Exception as e:
-                              print(f"An error occurred: {e}")
-
-                      if __name__ == "__main__":
-                          upload_to_sharepoint()
-        variables:
-          - name: HARNESS_CI_INTERNAL_ROUTE_TO_RUNNER
-            type: String
-            description: ""
-            required: false
-            value: "true"
-        delegateSelectors:
-          - windows-amd64
+                    shell: Bash
+                    executionTarget: {}
+                    source:
+                      type: Inline
+                      spec:
+                        script: "customIamRolePoliciesNames: <+expression.isResolved(<+serviceVariables.iamRole>)?\"[]\":(expression.isResolved(<+serviceVariables.customIamRolePolicyNames>)?<+serviceVariables.customIamRolePolicyNames>:\"[]\")>"
+                    environmentVariables: []
+                    outputVariables: []
+                  timeout: 10m
+        tags: {}
   variables:
     - name: hh
       type: String
