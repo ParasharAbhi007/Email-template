@@ -24,7 +24,7 @@ pipeline:
                     source:
                       type: Inline
                       spec:
-                        script: "customIamRolePoliciesNames: <+expression.isResolved(<+pipeline.variables.iamRole>)?\"[]\":(expression.isResolved(<+pipeline.variables.customIamRolePolicyNames>)?<+pipeline.variables.customIamRolePolicyNames>:\"[]\")>"
+                        script: "echo customIamRolePoliciesNames: <+expression.isResolved(<+pipeline.variables.iamRole>)?\"[]\":(expression.isResolved(<+pipeline.variables.customIamRolePolicyNames>)?<+pipeline.variables.customIamRolePolicyNames>:\"[]\")>"
                     environmentVariables: []
                     outputVariables: []
                   timeout: 10m
