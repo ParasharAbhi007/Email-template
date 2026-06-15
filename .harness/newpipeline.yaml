@@ -89,7 +89,7 @@ pipeline:
                 type: StageRollback
         when:
           pipelineStatus: Success
-          condition: <+pipeline.variables["hh" + <+strategy.identifierPostFix>]>
+          condition: <+pipeline.variables["hh" + "<+strategy.identifierPostFix>"]>
   variables:
     - name: hh
       type: String
