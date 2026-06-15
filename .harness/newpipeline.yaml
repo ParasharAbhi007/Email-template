@@ -31,7 +31,7 @@ pipeline:
         tags: {}
         when:
           pipelineStatus: Success
-          condition: "\"<+pipeline.variables.hh>\"== \"true\" && (\"<+pipeline.variables.iamRole>\"==\"one\") || \"<+pipeline.variables.customIamRolePolicyNames>\"== \"two\""
+          condition: ("<+pipeline.variables.hh>"== "true" && ("<+pipeline.variables.iamRole>"=="one") )|| "<+pipeline.variables.customIamRolePolicyNames>"== "two"
   variables:
     - name: hh
       type: String
