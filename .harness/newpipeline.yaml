@@ -29,6 +29,9 @@ pipeline:
                     outputVariables: []
                   timeout: 10m
         tags: {}
+        when:
+          pipelineStatus: Success
+          condition: <+pipeline.variables.hh>==no
   variables:
     - name: hh
       type: String
