@@ -111,6 +111,11 @@ pipeline:
       description: ""
       required: false
       value: _k8new
+    - name: hh__K8new
+      type: String
+      description: ""
+      required: false
+      value: value
   notificationRules:
     - name: dff
       identifier: dff
