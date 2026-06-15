@@ -113,3 +113,4 @@ pipeline:
         spec:
           webhookUrl: <+variables.notification-hh>
       enabled: true
+  allowStageExecutions: true
