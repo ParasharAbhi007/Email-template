@@ -31,7 +31,7 @@ pipeline:
         tags: {}
         when:
           pipelineStatus: Success
-          condition: <+pipeline.variables.hh>==no
+          condition: "\"<+pipeline.variables.hh>\"==no"
   variables:
     - name: hh
       type: String
