@@ -39,16 +39,6 @@ pipeline:
         type: Deployment
         spec:
           deploymentType: Kubernetes
-          service:
-            serviceRef: K8new
-            serviceInputs:
-              serviceDefinition:
-                type: Kubernetes
-                spec:
-                  artifacts:
-                    primary:
-                      primaryArtifactRef: <+input>
-                      sources: <+input>
           environment:
             environmentRef: ECS_INFRA
             environmentInputs:
@@ -76,6 +66,20 @@ pipeline:
                     outputVariables: []
                   timeout: 10m
             rollbackSteps: []
+          services:
+            values:
+              - serviceRef: K8new
+                serviceInputs:
+                  serviceDefinition:
+                    type: Kubernetes
+                    spec:
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: <+input>
+                          sources: <+input>
+              - serviceRef: k8service
+            metadata:
+              parallel: false
         tags: {}
         failureStrategies:
           - onFailure:
