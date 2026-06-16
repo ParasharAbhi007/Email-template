@@ -61,7 +61,7 @@ pipeline:
                     source:
                       type: Inline
                       spec:
-                        script: echo <+strategy.identifierPostFix>
+                        script: echo <+service>
                     environmentVariables: []
                     outputVariables: []
                   timeout: 10m
