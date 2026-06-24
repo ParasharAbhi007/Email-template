@@ -122,8 +122,10 @@ pipeline:
       pipelineEvents:
         - type: PipelineStart
       notificationMethod:
-        type: Webhook
+        type: Email
         spec:
-          webhookUrl: <+variables.notification-hh>
+          userGroups:
+            - <+input>
+          recipients: []
       enabled: true
   allowStageExecutions: true
