@@ -1,1 +1,54 @@
+apiVersion: harness.io/v1
+kind: Workflow
+name: Form Context Test
+identifier: form_context_test
+type: service
+owner: user:account/abhinandan.parashar@harness.io
+metadata:
+  description: Minimal workflow to test Form Context with the projects picker.
+  tags:
+    - test
+spec:
+  lifecycle: experimental
+  parameters:
+    - title: Form Context Test
+      required:
+        - projectName
+      properties:
+        projectName:
+          title: Project Name
+          description: Pick a project to populate Form Context
+          type: string
+          ui:field: SelectFieldFromApi
+          ui:options:
+            placeholder: Choose a project
+            path: proxy/harness-api/v1/orgs/AbhiOrg/projects?limit=500&sort=name&order=ASC&search_term=ga-idp-available
+            valueSelector: project.identifier
+            labelSelector: project.name
+            setContextData:
+              selectedProjectIdentifier: project.identifier
+              selectedProjectName: project.name
 
+        projectIdentifier:
+          title: Selected Project Identifier
+          description: Auto-filled from Form Context
+          type: string
+          readonly: true
+          ui:field: ContextViewer
+          ui:options:
+            getContextData: {{formContext.selectedProjectIdentifier}}
+
+        formContext:
+          title: Live Form Context
+          description: DEBUG Context
+          type: string
+          readonly: true
+          ui:field: ContextViewer
+          ui:options:
+            getContextData: {{formContext}}
+  steps:
+    - id: message
+      name: noop
+      action: debug:log
+      input:
+        message: "Form context test - no pipeline triggered."
