@@ -1,0 +1,101 @@
+pipeline:
+  name: k8s
+  identifier: k8s
+  projectIdentifier: CSETest1
+  orgIdentifier: AbhiOrg
+  tags: {}
+  stages:
+    - stage:
+        name: dep
+        identifier: dep
+        description: ""
+        type: Deployment
+        spec:
+          deploymentType: Kubernetes
+          service:
+            serviceRef: k8service
+          environment:
+            environmentRef: ECS_INFRA
+            environmentInputs:
+              variables:
+                - name: dbname
+                  type: String
+                  value: <+input>
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: ee
+          execution:
+            steps:
+              - step:
+                  name: Rollout Deployment
+                  identifier: rolloutDeployment
+                  type: K8sRollingDeploy
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+                    pruningEnabled: false
+            rollbackSteps:
+              - step:
+                  name: Rollback Rollout Deployment
+                  identifier: rollbackRolloutDeployment
+                  type: K8sRollingRollback
+                  timeout: 10m
+                  spec:
+                    pruningEnabled: false
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
+    - stage:
+        name: buid
+        identifier: buid
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: false
+          caching:
+            enabled: true
+            override: false
+          buildIntelligence:
+            enabled: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - stepGroup:
+                  name: testname
+                  identifier: testname
+                  template:
+                    templateRef: Grype_scan_and_ingest
+                    versionLabel: "0.1"
+                    templateInputs:
+                      inputs:
+                        - name: TARGET_REPO
+                          type: String
+                          value: <+input>
+                        - name: BASE_TAG
+                          type: String
+                          value: <+input>
+                      steps:
+                        - step:
+                            identifier: Grype_Scan
+                            type: Run
+                            spec:
+                              environmentVariables:
+                                - name: TARGET_REPO
+                                  type: String
+                                  value: <+inputs.TARGET_REPO>
+                                - name: BASE_IMAGE
+                                  type: String
+                                  value: <+inputs.BASE_IMAGE>
+                                - name: BASE_TAG
+                                  type: String
+                                  value: <+inputs.BASE_TAG>
+  allowStageExecutions: true
