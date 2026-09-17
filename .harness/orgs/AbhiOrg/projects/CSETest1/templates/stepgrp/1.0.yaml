@@ -1,0 +1,387 @@
+template:
+  name: Grype scan and ingest
+  identifier: Grype_scan_and_ingest
+  versionLabel: "0.1"
+  type: StepGroup
+  projectIdentifier: CSETest1
+  orgIdentifier: AbhiOrg
+  tags: {}
+  spec:
+    stageType: CI
+    inputs:
+      - name: TARGET_REPO
+        type: String
+        value: <+input>
+      - name: BASE_IMAGE
+        type: String
+      - name: BASE_TAG
+        type: String
+        value: <+input>
+    steps:
+      - step:
+          type: Run
+          name: Grype Scan
+          identifier: Grype_Scan
+          spec:
+            shell: Bash
+            connectorRef: SDLC_Delegates
+            image: pkg.harness.io/ct8onj8ytdaxtkafsycrlg/sdlc-delegates/progress/delegate-ubuntu-24.04-sdlc@sha256:e637610cbedb5a6a98a64c04f300b7852920d461c62431677fddc392e1fb0bf4
+            privileged: true
+            environmentVariables:
+              - name: TARGET_REPO
+                type: String
+                value: <+inputs.TARGET_REPO>
+              - name: BASE_IMAGE
+                type: String
+                value: <+inputs.BASE_IMAGE>
+              - name: BASE_TAG
+                type: String
+                value: <+inputs.BASE_TAG>
+            command: |-
+              set -euo pipefail
+              GRYPE_RESULT_FILE="/shared/scan_results/grype.json"
+              GRYPE_SUCCESS_MARKER="/shared/scan_results/grype.scan.ok"
+              GRYPE_IMAGE_TAR="/shared/scan_results/scan_image.tar"
+              mkdir -p /shared/scan_results
+              rm -f "$GRYPE_RESULT_FILE" "$GRYPE_SUCCESS_MARKER"
+
+              # Install grype in this same step (not a separate "Install
+              # Grype" step) — each Harness CI Run step runs in its own fresh
+              # container, so a binary installed in a prior step's container
+              # is never visible here. Combining install+scan in one step
+              # avoids that entirely.
+              GRYPE_VERSION="<+pipeline.variables.GRYPE_VERSION>"
+              # Strip any surrounding quotes Harness may inject before normalizing
+              # "null" — otherwise a quoted "null" survives the null-check below,
+              # then gets unquoted and turned into the literal string vnull.
+              GRYPE_VERSION="${GRYPE_VERSION#\"}"
+              GRYPE_VERSION="${GRYPE_VERSION%\"}"
+              [[ "$GRYPE_VERSION" == "null" ]] && GRYPE_VERSION=""
+              [[ -z "$GRYPE_VERSION" ]] && GRYPE_VERSION="v0.116.1"
+              # Ensure the required v-prefix is present for the GitHub release URL.
+              [[ "$GRYPE_VERSION" != v* ]] && GRYPE_VERSION="v${GRYPE_VERSION}"
+
+              echo "=== grype install (${GRYPE_VERSION}) ==="
+              GRYPE_VERSION_NO_PREFIX="${GRYPE_VERSION#v}"
+              GRYPE_TARBALL="grype_${GRYPE_VERSION_NO_PREFIX}_linux_amd64.tar.gz"
+              command -v curl >/dev/null || { echo "Error: curl is required but not found. Ensure the delegate image includes curl." >&2; exit 1; }
+              echo "Command about to run: curl -sSfL ... https://github.com/anchore/grype/releases/download/${GRYPE_VERSION}/${GRYPE_TARBALL} -o /tmp/${GRYPE_TARBALL}"
+              curl -sSfL --connect-timeout 10 --max-time 60 "https://github.com/anchore/grype/releases/download/${GRYPE_VERSION}/${GRYPE_TARBALL}" -o "/tmp/${GRYPE_TARBALL}"
+              echo "Command about to run: curl -sSfL ... https://github.com/anchore/grype/releases/download/${GRYPE_VERSION}/grype_${GRYPE_VERSION_NO_PREFIX}_checksums.txt -o /tmp/grype_checksums.txt"
+              curl -sSfL --connect-timeout 10 --max-time 30 "https://github.com/anchore/grype/releases/download/${GRYPE_VERSION}/grype_${GRYPE_VERSION_NO_PREFIX}_checksums.txt" -o /tmp/grype_checksums.txt
+              (cd /tmp && grep -F " ${GRYPE_TARBALL}" grype_checksums.txt | sha256sum -c -)
+              tar -xzf "/tmp/${GRYPE_TARBALL}" -C /tmp grype
+              install -m 0755 /tmp/grype /usr/local/bin/grype
+              rm -f "/tmp/${GRYPE_TARBALL}" /tmp/grype_checksums.txt /tmp/grype
+              grype --version
+
+              # The Pull Image for Scan pipeline step pulls the source image once and
+              # exports it to the shared tarball below, so this step never needs its
+              # own docker pull/login or a Docker daemon connection at all.
+              [[ -s "$GRYPE_IMAGE_TAR" ]] || { echo "Error: shared scan image tarball not found at $GRYPE_IMAGE_TAR. Ensure the Pull Image for Scan step ran successfully." >&2; exit 1; }
+
+              # Source image coordinates are passed through template inputs (sourced
+              # from the Pull Image for Scan step's normalized outputs) and exposed as
+              # environment variables so the Run step and STO ingest target always use
+              # the same resolved values.
+              TARGET_REPO="${TARGET_REPO:-}"
+              BASE_IMAGE="${BASE_IMAGE:-}"
+              BASE_TAG="${BASE_TAG:-}"
+              PULL_TARGET_REPO="<+execution.steps.Pull_Image_For_Scan.output.outputVariables.TARGET_REPO>"
+              PULL_BASE_IMAGE="<+execution.steps.Pull_Image_For_Scan.output.outputVariables.BASE_IMAGE>"
+              PULL_BASE_TAG="<+execution.steps.Pull_Image_For_Scan.output.outputVariables.BASE_TAG>"
+              # Harness resolves unset template inputs and pipeline variable
+              # expressions to the literal string "null" in trigger-based runs.
+              # Normalize before validation.
+              EXPR_PREFIX="<""+"
+              is_unresolved_expr() {
+                local value="${1:-}"
+                [[ "$value" == "${EXPR_PREFIX}"*">" ]]
+              }
+              SQUOTE=$'\''
+              TARGET_REPO="${TARGET_REPO#\"}"
+              TARGET_REPO="${TARGET_REPO%\"}"
+              BASE_IMAGE="${BASE_IMAGE#\"}"
+              BASE_IMAGE="${BASE_IMAGE%\"}"
+              BASE_TAG="${BASE_TAG#\"}"
+              BASE_TAG="${BASE_TAG%\"}"
+              PULL_TARGET_REPO="${PULL_TARGET_REPO#\"}"
+              PULL_TARGET_REPO="${PULL_TARGET_REPO%\"}"
+              PULL_BASE_IMAGE="${PULL_BASE_IMAGE#\"}"
+              PULL_BASE_IMAGE="${PULL_BASE_IMAGE%\"}"
+              PULL_BASE_TAG="${PULL_BASE_TAG#\"}"
+              PULL_BASE_TAG="${PULL_BASE_TAG%\"}"
+              TARGET_REPO="${TARGET_REPO#$SQUOTE}"
+              TARGET_REPO="${TARGET_REPO%$SQUOTE}"
+              BASE_IMAGE="${BASE_IMAGE#$SQUOTE}"
+              BASE_IMAGE="${BASE_IMAGE%$SQUOTE}"
+              BASE_TAG="${BASE_TAG#$SQUOTE}"
+              BASE_TAG="${BASE_TAG%$SQUOTE}"
+              PULL_TARGET_REPO="${PULL_TARGET_REPO#$SQUOTE}"
+              PULL_TARGET_REPO="${PULL_TARGET_REPO%$SQUOTE}"
+              PULL_BASE_IMAGE="${PULL_BASE_IMAGE#$SQUOTE}"
+              PULL_BASE_IMAGE="${PULL_BASE_IMAGE%$SQUOTE}"
+              PULL_BASE_TAG="${PULL_BASE_TAG#$SQUOTE}"
+              PULL_BASE_TAG="${PULL_BASE_TAG%$SQUOTE}"
+              [[ "$TARGET_REPO"   == "null" ]] && TARGET_REPO=""
+              [[ "$BASE_IMAGE"    == "null" ]] && BASE_IMAGE=""
+              [[ "$BASE_TAG"      == "null" ]] && BASE_TAG=""
+              [[ "$PULL_TARGET_REPO" == "null" ]] && PULL_TARGET_REPO=""
+              [[ "$PULL_BASE_IMAGE" == "null" ]] && PULL_BASE_IMAGE=""
+              [[ "$PULL_BASE_TAG" == "null" ]] && PULL_BASE_TAG=""
+              is_unresolved_expr "$PULL_TARGET_REPO" && PULL_TARGET_REPO=""
+              is_unresolved_expr "$PULL_BASE_IMAGE" && PULL_BASE_IMAGE=""
+              is_unresolved_expr "$PULL_BASE_TAG" && PULL_BASE_TAG=""
+              # Prefer the value resolved directly from the Pull Image for Scan
+              # step's outputs (PULL_*) over the templateInputs-forwarded value
+              # (TARGET_REPO/BASE_IMAGE/BASE_TAG from <+inputs.X>). Build 29
+              # showed <+inputs.X> can resolve to a non-empty, non-"null",
+              # non-expression string that is still WRONG (e.g. another
+              # field's value), so an emptiness/unresolved check alone isn't
+              # enough to catch it. The direct sibling-step expression has
+              # proven reliable in every observed run, so it takes priority;
+              # the templateInputs value is only a last-resort fallback if
+              # the direct expression itself is empty/unresolved.
+              if ! is_unresolved_expr "$PULL_TARGET_REPO" && [[ -n "$PULL_TARGET_REPO" ]]; then
+                TARGET_REPO="$PULL_TARGET_REPO"
+              elif is_unresolved_expr "$TARGET_REPO" || [[ -z "$TARGET_REPO" ]]; then
+                TARGET_REPO="$PULL_TARGET_REPO"
+              fi
+              if ! is_unresolved_expr "$PULL_BASE_IMAGE" && [[ -n "$PULL_BASE_IMAGE" ]]; then
+                BASE_IMAGE="$PULL_BASE_IMAGE"
+              elif is_unresolved_expr "$BASE_IMAGE" || [[ -z "$BASE_IMAGE" ]]; then
+                BASE_IMAGE="$PULL_BASE_IMAGE"
+              fi
+              if ! is_unresolved_expr "$PULL_BASE_TAG" && [[ -n "$PULL_BASE_TAG" ]]; then
+                BASE_TAG="$PULL_BASE_TAG"
+              elif is_unresolved_expr "$BASE_TAG" || [[ -z "$BASE_TAG" ]]; then
+                BASE_TAG="$PULL_BASE_TAG"
+              fi
+              is_unresolved_expr "$TARGET_REPO" && { echo "Error: TARGET_REPO resolved to an unresolved Harness expression." >&2; exit 1; }
+              is_unresolved_expr "$BASE_IMAGE" && { echo "Error: BASE_IMAGE resolved to an unresolved Harness expression." >&2; exit 1; }
+              is_unresolved_expr "$BASE_TAG" && { echo "Error: BASE_TAG resolved to an unresolved Harness expression." >&2; exit 1; }
+              [[ -z "$TARGET_REPO" ]]   && { echo "Error: TARGET_REPO must not be empty." >&2; exit 1; }
+              [[ -z "$BASE_IMAGE" ]]    && { echo "Error: BASE_IMAGE must not be empty." >&2; exit 1; }
+              [[ -z "$BASE_TAG" ]]      && { echo "Error: BASE_TAG must not be empty." >&2; exit 1; }
+              [[ "$TARGET_REPO" != */* ]] && { echo "Error: TARGET_REPO must contain a '/' (e.g. registry.example.com/repo)." >&2; exit 1; }
+              [[ "$TARGET_REPO" == */ ]] && { echo "Error: TARGET_REPO must not have a trailing slash." >&2; exit 1; }
+              [[ "$BASE_IMAGE" == *:* ]] && { echo "Error: BASE_IMAGE must not contain a colon; specify the tag using BASE_TAG." >&2; exit 1; }
+              [[ "$BASE_TAG" == *:* ]]   && { echo "Error: BASE_TAG must not contain a colon." >&2; exit 1; }
+              export TARGET_REPO BASE_IMAGE BASE_TAG
+
+              echo "=== DEBUG: Grype Scan ==="
+              echo "Non-secret variables:"
+              echo "  TARGET_REPO=$TARGET_REPO"
+              echo "  BASE_IMAGE=$BASE_IMAGE"
+              echo "  BASE_TAG=$BASE_TAG"
+              echo "  GRYPE_VERSION=$GRYPE_VERSION"
+              echo "  GRYPE_RESULT_FILE=$GRYPE_RESULT_FILE"
+              echo "  GRYPE_SUCCESS_MARKER=$GRYPE_SUCCESS_MARKER"
+              echo "  GRYPE_IMAGE_TAR=$GRYPE_IMAGE_TAR"
+              echo "  GRYPE_DB_CACHE_DIR=${GRYPE_DB_CACHE_DIR:-/tmp/grype-db}"
+              echo "  Working directory: $(pwd)"
+              echo "  grype version: $(grype --version 2>&1 | tr '\n' ' ')"
+              echo "  (no secrets are used by this step)"
+              echo "Commands about to run:"
+              echo "  export GRYPE_DB_CACHE_DIR=${GRYPE_DB_CACHE_DIR:-/tmp/grype-db}"
+              echo "  grype db update (up to \${GRYPE_DB_MAX_ATTEMPTS:-3} attempts)"
+              echo "  grype \"docker-archive:${GRYPE_IMAGE_TAR}\" --output json | tee \"$GRYPE_RESULT_FILE\""
+              echo "========================="
+
+              # No --fail-on here on purpose: we want the JSON written and
+              # ingested on every run. The Grype Ingest step below enforces the
+              # severity gate instead, so results always land in STO.
+              #
+              # IMPORTANT: Harness CI auto-injects every pipeline variable into
+              # the Run step's OS environment. Grype's config loader (viper)
+              # binds any GRYPE_-prefixed env var to the matching config key,
+              # so our own GRYPE_FAIL_ON_SEVERITY pipeline variable (consumed
+              # by Grype Ingest below) collides with grype's "fail-on-severity"
+              # setting and silently makes the CLI apply --fail-on even though
+              # this command never passes that flag. Unset it before invoking
+              # grype so the scan always exits 0 and writes the full JSON.
+              unset GRYPE_FAIL_ON_SEVERITY
+
+              # Scans the shared docker-archive tarball exported by the Pull Image
+              # for Scan pipeline step, so grype never needs to reach the Docker
+              # daemon itself.
+              #
+              # Split into two explicit commands (matching the user's manual local
+              # repro: `export GRYPE_DB_CACHE_DIR=...; grype db update; grype
+              # docker-archive:... --output json | tee grype.json`) instead of
+              # letting `grype` implicitly hydrate the DB during the scan
+              # invocation. This makes DB-update failures (e.g. "unable to
+              # migrate: disk I/O error" / "database does not exist" from an
+              # interrupted or corrupt prior download) visibly distinct in the
+              # build log from scan failures, and lets each phase be retried
+              # independently instead of one opaque combined step.
+              GRYPE_DB_CACHE_DIR="${GRYPE_DB_CACHE_DIR:-/tmp/grype-db}"
+              export GRYPE_DB_CACHE_DIR
+              # Safety guard: refuse to rm -rf a suspicious/unset/root path before
+              # ever attempting to clear the cache below.
+              if [[ -z "$GRYPE_DB_CACHE_DIR" || "$GRYPE_DB_CACHE_DIR" == "/" ]]; then
+                echo "Error: GRYPE_DB_CACHE_DIR resolved to an unsafe path ('$GRYPE_DB_CACHE_DIR'); refusing to delete it." >&2
+                exit 1
+              fi
+
+              echo "=== grype db update ==="
+              GRYPE_DB_MAX_ATTEMPTS=3
+              grype_db_attempt=1
+              until grype db update; do
+                grype_db_rc=$?
+                if (( grype_db_attempt >= GRYPE_DB_MAX_ATTEMPTS )); then
+                  echo "Error: grype db update failed after ${GRYPE_DB_MAX_ATTEMPTS} attempts (exit ${grype_db_rc})." >&2
+                  exit "$grype_db_rc"
+                fi
+                echo "Warning: grype db update attempt ${grype_db_attempt} failed (exit ${grype_db_rc}); clearing vulnerability DB cache at ${GRYPE_DB_CACHE_DIR} and retrying..." >&2
+                [[ -z "$GRYPE_DB_CACHE_DIR" || "$GRYPE_DB_CACHE_DIR" == "/" ]] && { echo "Error: GRYPE_DB_CACHE_DIR resolved to an unsafe path ('$GRYPE_DB_CACHE_DIR'); refusing to delete it." >&2; exit 1; }
+                rm -rf "$GRYPE_DB_CACHE_DIR"
+                grype_db_attempt=$((grype_db_attempt + 1))
+                sleep 5
+              done
+              grype db status
+
+              echo "=== grype scan (docker-archive:${GRYPE_IMAGE_TAR}) ==="
+              # `set -o pipefail` (part of `set -euo pipefail` above) makes this
+              # pipeline's exit status the exit status of `grype`, not `tee`, so a
+              # scan failure still aborts the script per the fail-fast requirement.
+              grype "docker-archive:${GRYPE_IMAGE_TAR}" --output json | tee "$GRYPE_RESULT_FILE"
+
+              [[ -s "$GRYPE_RESULT_FILE" ]] || { echo "Error: Grype scan produced no output." >&2; exit 1; }
+              if command -v jq &>/dev/null; then
+                jq empty "$GRYPE_RESULT_FILE" >/dev/null || { echo "Error: Grype scan output is not valid JSON." >&2; exit 1; }
+              elif command -v python3 &>/dev/null; then
+                python3 -m json.tool "$GRYPE_RESULT_FILE" >/dev/null || { echo "Error: Grype scan output is not valid JSON." >&2; exit 1; }
+              else
+                echo "Error: Cannot validate Grype scan JSON because neither jq nor python3 is available." >&2
+                exit 1
+              fi
+              # File is confirmed present, non-empty, and valid JSON at this
+              # point, so it is fully usable for STO ingestion. Touch the
+              # marker now — usability is judged by the file on disk. The
+              # human-readable pretty-printed display of this JSON is handled
+              # by the dedicated "Display Grype JSON" step below (after
+              # ingest), not here — this prevents the display from being
+              # intermittently missing or truncated in the build log, which
+              # happened when it was combined with the scan step's own
+              # output volume.
+              touch "$GRYPE_SUCCESS_MARKER"
+            outputVariables:
+              - name: TARGET_REPO
+                type: String
+                value: TARGET_REPO
+              - name: BASE_IMAGE
+                type: String
+                value: BASE_IMAGE
+              - name: BASE_TAG
+                type: String
+                value: BASE_TAG
+          description: |-
+            Installs the pinned Grype CLI release (verifying its SHA256
+            checksum) and runs a local Grype scan against the shared
+            docker-archive tarball at /shared/scan_results/scan_image.tar,
+            writing the full JSON result to /shared/scan_results/grype.json.
+            Install and scan are combined in a single Run step (not split
+            across separate steps) because each Harness CI Run step executes
+            in its own fresh container — a binary installed in one step's
+            container is not visible in a different step's container, so an
+            "Install Grype" step followed by a separate "Grype Scan" step
+            would fail with "grype binary not found on PATH" every time. The
+            tarball is exported once by the pipeline's Pull Image for Scan
+            step (shared with the Trivy and Wiz scan steps via the stage's
+            shared volume), so this step no longer pulls the image itself or
+            needs a Docker daemon connection — it only reads the local
+            archive via grype's `docker-archive:` source.
+
+            Image coordinates (TARGET_REPO, BASE_IMAGE, BASE_TAG) are supplied
+            through StepGroup template inputs (sourced from Pull Image for Scan's
+            normalized outputs) and passed into the Run step via environment
+            variables so the scan target and STO metadata always match.
+
+            Inputs:
+            - GRYPE_VERSION (optional, defaults to v0.116.1)
+            - TARGET_REPO (required StepGroup input; source registry/repository path without the tag)
+            - BASE_IMAGE (required StepGroup input; source image basename)
+            - BASE_TAG (required StepGroup input; source image tag)
+            - GRYPE_FAIL_ON_SEVERITY (optional, defaults to high in Process_manifests_change; consumed by Grype Ingest)
+
+            TEST: memory/CPU resource limit (previously 4Gi/1 CPU) temporarily
+            removed here to re-test whether it's still needed now that
+            several other pipeline bugs have been fixed. The original 4Gi
+            limit was added because the default Harness CI Run step limit
+            (500Mi) was too low for grype to load the full vulnerability
+            database and scan larger images, causing the pod to be evicted
+            mid-scan and the scan output to be missing/unusable. Revert this
+            removal (restore the `resources.limits` block) if evictions
+            reoccur.
+      - step:
+          type: Grype
+          name: Grype Ingest
+          identifier: Grype_Ingest
+          spec:
+            mode: ingestion
+            config: default
+            target:
+              type: container
+              detection: auto
+            advanced:
+              log:
+                level: info
+              fail_on_severity: <+pipeline.variables.GRYPE_FAIL_ON_SEVERITY>
+            privileged: true
+            ingestion:
+              file: /shared/scan_results/grype.json
+          description: |-
+            Imports the Grype JSON into Harness STO and enforces the configured fail-on-severity policy.
+
+            Uses `detection: auto` so STO derives the target image name/tag
+            directly from grype.json's own embedded `source.target.tags`
+            metadata instead of a cross-step outputVariables expression,
+            which repeatedly resolved to null across builds 28-30 despite
+            multiple targeted fixes.
+
+            Inputs:
+            - TARGET_REPO (required StepGroup input; normalized by Grype Scan before STO ingest)
+            - BASE_IMAGE (required StepGroup input; normalized by Grype Scan before STO ingest)
+            - BASE_TAG (required StepGroup input; normalized by Grype Scan before STO ingest)
+            - GRYPE_FAIL_ON_SEVERITY (optional, defaults to high in Process_manifests_change)
+      - step:
+          type: Run
+          name: Display Grype JSON
+          identifier: Display_Grype_JSON
+          spec:
+            shell: Bash
+            connectorRef: SDLC_Delegates
+            image: pkg.harness.io/ct8onj8ytdaxtkafsycrlg/sdlc-delegates/progress/delegate-ubuntu-24.04-sdlc@sha256:e637610cbedb5a6a98a64c04f300b7852920d461c62431677fddc392e1fb0bf4
+            privileged: true
+            command: |-
+              set -euo pipefail
+              GRYPE_RESULT_FILE="/shared/scan_results/grype.json"
+
+              [[ -s "$GRYPE_RESULT_FILE" ]] || { echo "Error: $GRYPE_RESULT_FILE not found or empty — Grype Scan step did not produce usable output." >&2; exit 1; }
+
+              if command -v jq &>/dev/null; then
+                echo "=== Running: jq . \"$GRYPE_RESULT_FILE\" (formatted JSON output) ==="
+                jq . "$GRYPE_RESULT_FILE"
+              else
+                echo "=== Running: cat \"$GRYPE_RESULT_FILE\" (jq not available, raw JSON output) ==="
+                cat "$GRYPE_RESULT_FILE"
+              fi
+          when:
+            stageStatus: All
+          description: |-
+            Pretty-prints the full grype.json scan result to the build log
+            for human inspection, using jq when available (falling back to
+            a raw cat if jq is missing). Runs as its own step after Grype
+            Ingest — separated from the Grype Scan step — so the JSON
+            display is not intermittently missing or truncated in the log
+            due to combined output volume from the install/scan/db-update
+            steps, and so it still runs even when Grype Ingest's
+            fail_on_severity policy gate legitimately triggers on findings
+            (that "failure" is expected and is caught by this StepGroup's
+            failureStrategies at the pipeline level, not a reason to skip
+            displaying the results).
+
+            Inputs: none (reads /shared/scan_results/grype.json, written by
+            Grype Scan).
+    variables: []
