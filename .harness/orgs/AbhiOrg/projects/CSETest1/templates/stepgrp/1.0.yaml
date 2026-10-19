@@ -19,6 +19,14 @@ template:
         value: <+input>
     steps:
       - step:
+          type: GitClone
+          name: GitClone_1
+          identifier: GitClone_1
+          spec:
+            repoName: <+input>
+            cloneDirectory: <+input>
+            build: <+input>
+      - step:
           type: Run
           name: Grype Scan
           identifier: Grype_Scan
